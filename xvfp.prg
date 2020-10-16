@@ -3,31 +3,51 @@ Define Class XVFP as Session olepublic
 	Procedure run as String
 		Lparameters cFileName As String, cOptions As String
 
-		Local cReturn, cPath, cProgram
+		Local cReturn, cPath, cProgram, cFileLog, i, nLines, uReturnAux  
 		
 		If Empty(cOptions)
 			cOptions = ""
 		EndIf 
 		
+		cReturn = ""
+		uReturnAux = ""
+		
 		Try 
+			Dimension aLog[1]
+			cFileLog = Addbs(Sys(2023)) + ForceExt(Sys(2015), "txt")
+			
+			SET ALTERNATE TO (cFileLog) ADDITIVE 
+			SET ALTERNATE ON
+		
 			Compile (cFileName)
 			cPath = JustPath(cFileName)	
 			cProgram = JustStem(cFileName)
 			Set path To (cPath) ADDITIVE 
-			uReturn = Evaluate(cProgram+"()")
+			uReturnAux = Evaluate(cProgram+"()")
 			
-			uReturn = Transform(uReturn)
+			SET ALTERNATE OFF
+			SET ALTERNATE TO			
+			
+			nLines = ALines(aLog, FileToStr(cFileLog), 4)
+			uReturnAux = Transform(uReturnAux)
+			
+			For i=1 To nLines
+				cReturn = cReturn + Chrtran(aLog[i], Chr(26), "") + Chr(13) + Chr(10)
+			Next 
+			
+			cReturn = cReturn + uReturnAux
+			
+			Delete File (cFileLog)			
 			
 			Do Case
 				Case "browse" $ cOptions
 					oBuild = CreateObject("CursorToString")
-					uReturn = uReturn + Chr(13) + Chr(10) + oBuild.Build(Alias())
+					cReturn = cReturn + Chr(13) + Chr(10) + oBuild.Build(Alias())
 			EndCase 
 						
-			cReturn = uReturn
 		Catch To oErr
 			cReturn = oErr.Message + " Linha: " + Transform(oErr.Lineno)
-		EndTry 
+		EndTry 		
 		
 		Return cReturn
 	EndProc
